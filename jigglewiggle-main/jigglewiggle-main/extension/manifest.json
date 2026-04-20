@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Jiggle Wiggle",
+  "version": "1.0.0",
+  "description": "Open any YouTube video in Jiggle Wiggle to learn dance moves with AI coaching",
+  "permissions": ["activeTab", "tabs"],
+  "action": {
+    "default_title": "Jiggle Wiggle",
+    "default_icon": "icon.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}

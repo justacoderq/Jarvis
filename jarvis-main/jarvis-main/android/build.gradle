@@ -1,0 +1,45 @@
+buildscript {
+    ext.kotlin_version = '1.9.10'
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.1.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.buildDir = "../build"
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    afterEvaluate { project ->
+        if (project.plugins.hasPlugin('com.android.library')) {
+            // Create a flutter extension-like object for plugins that need it
+            project.extensions.create('flutter', FlutterPluginExtension)
+            project.android {
+                compileSdk = 35
+            }
+        }
+    }
+}
+
+class FlutterPluginExtension {
+    int compileSdkVersion = 35
+    int minSdkVersion = 21
+    int targetSdkVersion = 35
+    String ndkVersion = "23.1.7779620"
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}

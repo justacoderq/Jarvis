@@ -1,0 +1,67 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'hud_screen.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
+  await dotenv.load(fileName: ".env");
+
+  // Set to fullscreen immersive mode
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+  // Request permissions
+  await _requestPermissions();
+
+  runApp(const MyApp());
+}
+
+Future<void> _requestPermissions() async {
+  // Request camera and microphone permissions
+  final cameraStatus = await Permission.camera.request();
+  final microphoneStatus = await Permission.microphone.request();
+  final speechStatus = await Permission.speech.request();
+
+  if (cameraStatus.isDenied || microphoneStatus.isDenied || speechStatus.isDenied) {
+    print('Permissions denied. The app may not function correctly.');
+  }
+
+  if (cameraStatus.isPermanentlyDenied ||
+      microphoneStatus.isPermanentlyDenied ||
+      speechStatus.isPermanentlyDenied) {
+    print('Permissions permanently denied. Please enable them in settings.');
+  }
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Jarvis Workflow Copilot',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: Colors.black,
+        primaryColor: Colors.cyanAccent,
+        colorScheme: ColorScheme.dark(
+          primary: Colors.cyanAccent,
+          secondary: Colors.blueAccent,
+          surface: Colors.black,
+        ),
+        useMaterial3: true,
+      ),
+      home: JarvisHUDScreen(
+        apiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
+        picovoiceKey: dotenv.env['PICOVOICE_ACCESS_KEY'] ?? '',
+        siri2BaseUrl: dotenv.env['SIRI2_BASE_URL'] ?? 'http://127.0.0.1:3000',
+        phonePilotBaseUrl: dotenv.env['PHONEPILOT_BASE_URL'] ?? 'http://127.0.0.1:3001',
+        jiggleWiggleBaseUrl: dotenv.env['JIGGLEWIGGLE_BASE_URL'] ?? 'http://127.0.0.1:3002',
+      ),
+    );
+  }
+}
