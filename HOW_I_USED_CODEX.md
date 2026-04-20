@@ -7,9 +7,6 @@ Codex was used as an active engineering partner while building and refining this
 - creating and updating Markdown files for project documentation
 - cleaning the product scope down to **Jarvis + Learning Coach**
 - renaming product surfaces and UI text
-- wiring hardcoded demo flows like:
-  - `Hey Jarvis, how do I look?`
-  - `Jarvis, activate learning coach`
 - updating assistant behavior and voice-trigger logic
 - editing app structure to remove unnecessary phone-automation layers
 - helping manage environment setup and API key wiring
