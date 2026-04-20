@@ -62,7 +62,7 @@ https://drive.google.com/file/d/1VQXHWCRuvmCgqsZoHoBA_vExKEFru0iv/view?usp=shari
 From the repo root:
 
 ```powershell
-cd "C:\Users\Prachi\Downloads\Open AI Hackathon\JARVIS"
+cd "C:\Users\Prachi\Downloads\Open AI Hackathon"
 npm.cmd run dev:suite:motion
 ```
 
@@ -77,7 +77,7 @@ adb reverse --list
 ### 3. Run the Flutter app
 
 ```powershell
-cd "C:\Users\Prachi\Downloads\Open AI Hackathon\JARVIS\apps\jarvis-mobile"
+cd "C:\Users\Prachi\Downloads\Open AI Hackathon\apps\jarvis-mobile"
 & "C:\Users\Prachi\flutter\bin\flutter.bat" run
 ```
 
