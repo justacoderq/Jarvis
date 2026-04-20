@@ -1,0 +1,25 @@
+{
+  "name": "jarvis-suite",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Merged workspace for Jarvis mobile UI, JARVIS Control phone control, JARVIS Agent background automation, and JARVIS Motion coaching.",
+  "workspaces": [
+    "apps/jarvis-control-web",
+    "apps/jarvis-agent-server",
+    "apps/jarvis-motion-web"
+  ],
+  "scripts": {
+    "dev:suite": "node scripts/dev-suite.mjs",
+    "dev:suite:motion": "node scripts/dev-suite.mjs --with-motion",
+    "dev:control": "npm --prefix apps/jarvis-control-web run dev",
+    "dev:control:mastra": "npm --prefix apps/jarvis-control-web run dev:mastra",
+    "dev:agent": "npm --prefix apps/jarvis-agent-server run dev",
+    "dev:agent:server": "npm --prefix apps/jarvis-agent-server run dev:server",
+    "dev:motion": "npm --prefix apps/jarvis-motion-web run dev",
+    "build:control": "npm --prefix apps/jarvis-control-web run build",
+    "build:agent": "npm --prefix apps/jarvis-agent-server run build",
+    "build:motion": "npm --prefix apps/jarvis-motion-web run build",
+    "test:control": "npm --prefix apps/jarvis-control-web run test:integration",
+    "test:motion": "npm --prefix apps/jarvis-motion-web run test"
+  }
+}
