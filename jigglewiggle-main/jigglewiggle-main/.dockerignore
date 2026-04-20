@@ -1,9 +1,0 @@
-node_modules
-.next
-.env
-.env.local
-.git
-extension
-.DS_Store
-pnpm-lock.yaml
-pnpm-workspace.yaml
