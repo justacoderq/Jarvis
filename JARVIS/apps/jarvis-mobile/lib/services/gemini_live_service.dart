@@ -78,15 +78,7 @@ You monitor the user's vital signs and suit systems in real-time. At the start o
 
 You have visual capabilities through the user's helmet camera feed. When users ask "what do you see?", "describe what you're looking at", or similar questions, analyze the video frames you're receiving and provide clear, detailed descriptions of what you observe.
 
-You are also connected to the JARVIS phone suite:
-- InboxOps: rooted on-device operator for commands, notification handling, scheduling, and lock control
-- TaskRunner: ADB-based Android operator for app navigation and multi-step phone tasks
-
-When a user asks you to actually operate the phone, call the suite tools instead of only describing what should happen.
-- Use run_phone_agent_task with mode "jarvis-control" for opening apps, navigating UI, tapping through flows, taking screenshots, and other ADB-safe device control.
-- Use run_phone_agent_task with mode "jarvis-agent" for rooted-phone requests, notification triage, scheduler-oriented requests, and direct command execution on the phone itself.
-- Use get_suite_status when you need to confirm backend availability before acting.
-- Use stop_phone_agent if the user asks to cancel or stop a running phone action.
+Jiggle is Jarvis's guided coaching mode for active learning sessions. When the user wants guided practice, a generated routine, or a short coaching break, help them prepare for Jiggle and explain what should happen next.
 
 You help users with:
 - Monitoring vital signs and alerting to anomalies
@@ -266,41 +258,6 @@ When users ask to see notes, reminders, calendar events, or lists, use the appro
                 {
                   'name': 'clear_screen',
                   'description': 'Clear all UI components from the screen. Use this when the user wants to dismiss all notes, reminders, lists, and other displayed items.',
-                  'parameters': {
-                    'type': 'object',
-                    'properties': {}
-                  }
-                },
-                {
-                  'name': 'run_phone_agent_task',
-                  'description': 'Execute a real phone automation task using the merged JARVIS suite. Use mode "jarvis-agent" for rooted on-device automation like notifications, scheduler, and command execution. Use mode "jarvis-control" for ADB-driven app control on a connected Android device.',
-                  'parameters': {
-                    'type': 'object',
-                    'properties': {
-                      'mode': {
-                        'type': 'string',
-                        'enum': ['jarvis-agent', 'jarvis-control'],
-                        'description': 'Which backend should execute the task'
-                      },
-                      'prompt': {
-                        'type': 'string',
-                        'description': 'The natural-language automation instruction to execute'
-                      }
-                    },
-                    'required': ['mode', 'prompt']
-                  }
-                },
-                {
-                  'name': 'get_suite_status',
-                  'description': 'Check whether InboxOps and TaskRunner backends are currently reachable before attempting automation.',
-                  'parameters': {
-                    'type': 'object',
-                    'properties': {}
-                  }
-                },
-                {
-                  'name': 'stop_phone_agent',
-                  'description': 'Emergency stop for the rooted InboxOps backend. Use this if the user asks to stop or cancel an in-flight device action.',
                   'parameters': {
                     'type': 'object',
                     'properties': {}
@@ -636,36 +593,6 @@ When users ask to see notes, reminders, calendar events, or lists, use the appro
         });
         result = 'Screen cleared successfully';
         break;
-
-      case 'run_phone_agent_task':
-        if (args != null) {
-          print('=== Dispatching phone agent task via ${args['mode']}');
-          _toolCallController.add({
-            'function': 'run_phone_agent_task',
-            'id': functionId,
-            'mode': args['mode'],
-            'prompt': args['prompt'],
-          });
-          return;
-        }
-        result = 'Missing task arguments';
-        break;
-
-      case 'get_suite_status':
-        print('=== Requesting suite status');
-        _toolCallController.add({
-          'function': 'get_suite_status',
-          'id': functionId,
-        });
-        return;
-
-      case 'stop_phone_agent':
-        print('=== Requesting phone agent stop');
-        _toolCallController.add({
-          'function': 'stop_phone_agent',
-          'id': functionId,
-        });
-        return;
 
       default:
         print('=== Unknown function: $functionName');

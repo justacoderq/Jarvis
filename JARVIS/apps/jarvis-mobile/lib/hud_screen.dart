@@ -22,16 +22,12 @@ import 'dart:async';
 class JarvisHUDScreen extends StatefulWidget {
   final String apiKey;
   final String picovoiceKey;
-  final String jarvisAgentBaseUrl;
-  final String jarvisControlBaseUrl;
   final String jarvisMotionBaseUrl;
 
   const JarvisHUDScreen({
     super.key,
     required this.apiKey,
     required this.picovoiceKey,
-    required this.jarvisAgentBaseUrl,
-    required this.jarvisControlBaseUrl,
     required this.jarvisMotionBaseUrl,
   });
 
@@ -68,33 +64,14 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
   double _currentAudioLevel = 0.0;
 
   Timer? _pulseTimer;
-  Timer? _backendHealthTimer;
   Timer? _focusModeTimer;
   double _micPulse = 1.0;
-  final TextEditingController _commandController = TextEditingController();
-  BackendHealth _jarvisAgentHealth = const BackendHealth(ok: false, label: 'AGENT OFFLINE', detail: 'Not checked');
-  BackendHealth _jarvisControlHealth = const BackendHealth(ok: false, label: 'CONTROL OFFLINE', detail: 'Not checked');
-  SuiteExecutionMode _selectedMode = SuiteExecutionMode.jarvisAgent;
-  bool _isExecutingBackendCommand = false;
   bool _wakeWordAvailable = false;
   bool _resumeWakeWordWhenPlaybackStops = false;
-  bool _jarvisAgentBackgroundWorkersInitialized = false;
-  NotificationWatcherStatus _notificationStatus = const NotificationWatcherStatus(
-    running: false,
-    queueLength: 0,
-    filterCount: 0,
-  );
-  SchedulerStatus _schedulerStatus = const SchedulerStatus(
-    running: false,
-    taskCount: 0,
-  );
-  List<NotificationTriageEntry> _notificationEntries = const [];
-  List<SchedulerLogEntry> _schedulerEntries = const [];
   bool _focusModeEnabled = false;
   DateTime? _focusModeStartedAt;
   JiggleMicroBreak? _recommendedMicroBreak;
-  String _productivitySummary = 'No briefing generated yet.';
-  int _demoNotificationIndex = 0;
+  String _productivitySummary = 'Jarvis is ready to guide your next session.';
 
   @override
   void initState() {
@@ -102,7 +79,6 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
     _initializeCamera();
     _initializeServices();
     _startPulseAnimation();
-    _startBackendHealthPolling();
   }
 
   /// Initialize camera
@@ -157,8 +133,6 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
     _voiceFeedbackService = VoiceFeedbackService();
     _vitalsService = VitalsService();
     _suiteBackendService = SuiteBackendService(
-      jarvisAgentBaseUrl: widget.jarvisAgentBaseUrl,
-      jarvisControlBaseUrl: widget.jarvisControlBaseUrl,
       jarvisMotionBaseUrl: widget.jarvisMotionBaseUrl,
     );
 
@@ -166,6 +140,7 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
     _wakeWordService = WakeWordService(
       accessKey: widget.picovoiceKey,
       onWakeWordDetected: _onWakeWordDetected,
+      onVoiceCommandDetected: _onVoiceCommandDetected,
     );
 
     // Listen to vitals updates
@@ -235,8 +210,6 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
 
     // Auto-connect to Gemini
     _connect();
-
-    // Initialize and start wake word detection
     _initializeWakeWord();
   }
 
@@ -271,6 +244,17 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
     }
   }
 
+  void _onVoiceCommandDetected(String command) {
+    print('Voice command detected: $command');
+    switch (command) {
+      case 'productivity_update':
+        unawaited(_showDailyBriefing());
+        break;
+      default:
+        _onWakeWordDetected();
+    }
+  }
+
   /// Start pulse animation for microphone
   void _startPulseAnimation() {
     _pulseTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
@@ -282,98 +266,22 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
     });
   }
 
-  void _startBackendHealthPolling() {
-    _refreshBackendHealth();
-    _backendHealthTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      _refreshBackendHealth();
-    });
-  }
-
-  Future<void> _refreshBackendHealth() async {
-    final jarvisAgent = await _suiteBackendService.checkJarvisAgentHealth();
-    final jarvisControl = await _suiteBackendService.checkJarvisControlHealth();
-    if (!mounted) return;
-    setState(() {
-      _jarvisAgentHealth = jarvisAgent;
-      _jarvisControlHealth = jarvisControl;
-    });
-
-    if (jarvisAgent.ok && !_jarvisAgentBackgroundWorkersInitialized) {
-      final initialized = await _suiteBackendService.ensureJarvisAgentNotificationWatcher(
-        defaultPackages: const ['*'],
-      );
-      if (!mounted) return;
-      if (initialized) {
-        setState(() {
-          _jarvisAgentBackgroundWorkersInitialized = true;
-          _jarvisAgentHealth = const BackendHealth(
-            ok: true,
-            label: 'INBOXOPS ONLINE',
-            detail: 'Command server + notification watcher active',
-          );
-        });
-      }
-    }
-
-    if (jarvisAgent.ok) {
-      await _refreshProductivityInsights();
-    }
-  }
-
-  Future<void> _refreshProductivityInsights() async {
-    try {
-      final notificationStatus = await _suiteBackendService.getJarvisAgentNotificationStatus();
-      final notificationLog = await _suiteBackendService.getJarvisAgentNotificationLog();
-      final schedulerStatus = await _suiteBackendService.getJarvisAgentSchedulerStatus();
-      final schedulerLog = await _suiteBackendService.getJarvisAgentSchedulerLog();
-
-      if (!mounted) return;
-      setState(() {
-        _notificationStatus = notificationStatus;
-        _notificationEntries = notificationLog.reversed.take(5).toList();
-        _schedulerStatus = schedulerStatus;
-        _schedulerEntries = schedulerLog.reversed.take(3).toList();
-        _productivitySummary = _buildBriefingText(
-          notificationStatus: notificationStatus,
-          notificationEntries: notificationLog,
-          schedulerStatus: schedulerStatus,
-          schedulerEntries: schedulerLog,
-          microBreak: _recommendedMicroBreak,
-        );
-      });
-    } catch (e) {
-      print('Failed to refresh productivity insights: $e');
-    }
-  }
-
   String _buildBriefingText({
-    required NotificationWatcherStatus notificationStatus,
-    required List<NotificationTriageEntry> notificationEntries,
-    required SchedulerStatus schedulerStatus,
-    required List<SchedulerLogEntry> schedulerEntries,
     JiggleMicroBreak? microBreak,
   }) {
-    final latestNotification = notificationEntries.isNotEmpty ? notificationEntries.last : null;
-    final latestSchedule = schedulerEntries.isNotEmpty ? schedulerEntries.last : null;
     final focusText = _focusModeEnabled
         ? 'Focus mode active for ${_formatFocusDuration()}.'
         : 'Focus mode is currently off.';
 
     final parts = <String>[
-      notificationStatus.running
-          ? 'Notification watcher is active with ${notificationStatus.filterCount} filters.'
-          : 'Notification watcher is offline.',
-      latestNotification != null
-          ? 'Latest notification action: ${latestNotification.action.toUpperCase()} for ${latestNotification.title}.'
-          : 'No recent notification actions.',
-      schedulerStatus.running
-          ? 'Scheduler is running with ${schedulerStatus.taskCount} tasks.'
-          : 'Scheduler is idle.',
-      latestSchedule != null
-          ? 'Latest scheduled task ${latestSchedule.success ? 'succeeded' : 'failed'}: ${latestSchedule.taskName}.'
-          : 'No recent scheduled workflow runs.',
+      'Jarvis is online with voice, vision, and task guidance ready.',
       focusText,
-      if (microBreak != null) 'Recommended break: ${microBreak.title} for ${microBreak.minutes} minutes.',
+      if (_uiComponents.isNotEmpty)
+        'There are ${_uiComponents.length} active items on your workspace overlay.',
+      if (microBreak != null)
+        'Recommended coaching break: ${microBreak.title} for ${microBreak.minutes} minutes.',
+      if (microBreak == null)
+        'No coaching break is queued yet.',
     ];
 
     return parts.join(' ');
@@ -390,8 +298,13 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
   }
 
   Future<void> _showDailyBriefing() async {
-    await _refreshProductivityInsights();
     if (!mounted) return;
+
+    setState(() {
+      _productivitySummary = _buildBriefingText(
+        microBreak: _recommendedMicroBreak,
+      );
+    });
 
     final component = UIComponent.card(
       id: 'briefing_${DateTime.now().millisecondsSinceEpoch}',
@@ -417,10 +330,6 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
       setState(() {
         _recommendedMicroBreak = breakPlan;
         _productivitySummary = _buildBriefingText(
-          notificationStatus: _notificationStatus,
-          notificationEntries: _notificationEntries.reversed.toList(),
-          schedulerStatus: _schedulerStatus,
-          schedulerEntries: _schedulerEntries.reversed.toList(),
           microBreak: breakPlan,
         );
       });
@@ -483,116 +392,6 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
     );
   }
 
-  Future<void> _generateDemoNotification() async {
-    final scenarios = <Map<String, String>>[
-      {
-        'package': 'com.google.android.gm',
-        'title': 'Investor update needed before 4 PM',
-        'action': 'alert',
-        'reason': 'High-priority email tied to today\'s deadline.',
-      },
-      {
-        'package': 'com.whatsapp',
-        'title': 'Design lead: please review the launch deck',
-        'action': 'act',
-        'reason': 'Direct request from a collaborator.',
-      },
-      {
-        'package': 'com.google.android.calendar',
-        'title': 'Meeting starts in 10 minutes',
-        'action': 'alert',
-        'reason': 'Upcoming calendar event requires preparation.',
-      },
-      {
-        'package': 'com.discord',
-        'title': 'Hackathon mentor replied in team channel',
-        'action': 'log',
-        'reason': 'Useful update for demo activity.',
-      },
-    ];
-
-    final scenario = scenarios[_demoNotificationIndex % scenarios.length];
-    _demoNotificationIndex += 1;
-
-    final entry = NotificationTriageEntry(
-      timestamp: DateTime.now(),
-      packageName: scenario['package']!,
-      title: scenario['title']!,
-      action: scenario['action']!,
-      reason: scenario['reason']!,
-    );
-
-    if (!mounted) return;
-    setState(() {
-      _notificationStatus = NotificationWatcherStatus(
-        running: true,
-        queueLength: 0,
-        filterCount: _notificationStatus.filterCount == 0 ? 1 : _notificationStatus.filterCount,
-      );
-      _notificationEntries = [entry, ..._notificationEntries].take(5).toList();
-      _productivitySummary = _buildBriefingText(
-        notificationStatus: _notificationStatus,
-        notificationEntries: _notificationEntries.reversed.toList(),
-        schedulerStatus: _schedulerStatus,
-        schedulerEntries: _schedulerEntries.reversed.toList(),
-        microBreak: _recommendedMicroBreak,
-      );
-    });
-
-    _addComponentWithAnimation(
-      UIComponent.card(
-        id: 'demo_notification_${DateTime.now().millisecondsSinceEpoch}',
-        title: 'DEMO NOTIFICATION',
-        subtitle: scenario['package'],
-        content: '${scenario['title']}\nAction: ${scenario['action']!.toUpperCase()}\nWhy: ${scenario['reason']}',
-      ),
-    );
-
-    await _voiceFeedbackService.speak(
-      'Demo notification received. ${scenario['title']}. Recommended action ${scenario['action']}.',
-    );
-  }
-
-  Future<void> _submitBackendCommand() async {
-    final prompt = _commandController.text.trim();
-    if (prompt.isEmpty || _isExecutingBackendCommand) return;
-
-    setState(() {
-      _isExecutingBackendCommand = true;
-    });
-
-    final result = _selectedMode == SuiteExecutionMode.jarvisAgent
-        ? await _suiteBackendService.executeJarvisAgentCommand(prompt)
-        : await _suiteBackendService.executeJarvisControlGoal(prompt);
-
-    if (!mounted) return;
-
-    final component = UIComponent.card(
-      id: 'backend_result_${DateTime.now().millisecondsSinceEpoch}',
-      title: '${result.source} ${result.success ? 'COMPLETE' : 'ERROR'}',
-      subtitle: _selectedMode == SuiteExecutionMode.jarvisAgent
-          ? 'InboxOps rooted operator'
-          : 'TaskRunner ADB engine',
-      content: result.message,
-    );
-
-    _addComponentWithAnimation(component);
-    _commandController.clear();
-    setState(() {
-      _isExecutingBackendCommand = false;
-    });
-    unawaited(_speakBackendResult(result));
-  }
-
-  Future<void> _speakBackendResult(SuiteCommandResult result) async {
-    await _wakeWordService.stop();
-    await _audioPlayer.stopPlayback();
-    await _voiceFeedbackService.speak('${result.source}. ${result.message}');
-
-    if (!_isRecording && mounted) {
-      await _wakeWordService.start();
-    }
-  }
 
   Future<void> _openJarvisMotion() async {
     final wasRecording = _isRecording;
@@ -638,100 +437,6 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
     }
   }
 
-  Future<void> _emergencyStop() async {
-    final released = await _suiteBackendService.releaseJarvisAgentLock();
-    if (!mounted) return;
-    final component = UIComponent.card(
-      id: 'emergency_stop_${DateTime.now().millisecondsSinceEpoch}',
-      title: released ? 'EMERGENCY STOP SENT' : 'EMERGENCY STOP FAILED',
-      subtitle: 'InboxOps lock control',
-      content: released ? 'Device lock released successfully.' : 'Could not reach InboxOps lock endpoint.',
-    );
-    _addComponentWithAnimation(component);
-    await _refreshBackendHealth();
-  }
-
-  Widget _buildBackendStatusPanel() {
-    Widget statusRow(String title, BackendHealth health, Color activeColor) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: health.ok ? activeColor : Colors.redAccent,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: activeColor,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                  Text(
-                    health.detail,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      width: 260,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.75),
-        border: Border.all(color: Colors.cyanAccent.withOpacity(0.45)),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'SUITE BACKENDS',
-            style: TextStyle(
-              color: Colors.cyanAccent,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.4,
-            ),
-          ),
-          const SizedBox(height: 10),
-          statusRow('INBOXOPS', _jarvisAgentHealth, Colors.tealAccent),
-          statusRow('TASKRUNNER', _jarvisControlHealth, Colors.orangeAccent),
-          TextButton(
-            onPressed: _refreshBackendHealth,
-            style: TextButton.styleFrom(padding: EdgeInsets.zero),
-            child: const Text(
-              'REFRESH STATUS',
-              style: TextStyle(color: Colors.cyanAccent, fontSize: 11),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildCommandDock() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -746,7 +451,7 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
         mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
-            'PHONE AUTONOMY DOCK',
+            'JARVIS COMMAND DOCK',
             style: TextStyle(
               color: Colors.cyanAccent,
               fontSize: 12,
@@ -755,56 +460,12 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
             ),
           ),
           const SizedBox(height: 10),
-          SegmentedButton<SuiteExecutionMode>(
-            segments: const [
-              ButtonSegment(
-                value: SuiteExecutionMode.jarvisAgent,
-                label: Text('InboxOps'),
-                icon: Icon(Icons.phone_android),
-              ),
-              ButtonSegment(
-                value: SuiteExecutionMode.jarvisControl,
-                label: Text('TaskRunner'),
-                icon: Icon(Icons.smart_toy),
-              ),
-            ],
-            selected: <SuiteExecutionMode>{_selectedMode},
-            onSelectionChanged: (selection) {
-              setState(() {
-                _selectedMode = selection.first;
-              });
-            },
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: _commandController,
-            style: const TextStyle(color: Colors.white),
-            minLines: 1,
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: _selectedMode == SuiteExecutionMode.jarvisAgent
-                  ? 'Send a rooted-phone command, notification task, or schedule request'
-                  : 'Send an ADB phone-control goal',
-              hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
-              filled: true,
-              fillColor: Colors.white.withOpacity(0.06),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.cyanAccent.withOpacity(0.3)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.cyanAccent.withOpacity(0.3)),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
           Text(
             _wakeWordService.mode == WakeWordMode.porcupine
                 ? 'Voice ready: say "Jarvis"'
                 : _wakeWordService.mode == WakeWordMode.vosk
                     ? (_wakeWordService.speechFallbackArmed
-                        ? 'Free Vosk wake word live: say "Jarvis"'
+                        ? 'Free Vosk wake word live: say "Jarvis" or "Jarvis productivity update"'
                         : 'Free Vosk wake word paused')
                     : 'Push-to-talk active: tap MIC',
             style: TextStyle(
@@ -859,36 +520,12 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
                 child: const Text('BREAK'),
               ),
               OutlinedButton(
-                onPressed: _generateDemoNotification,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.amberAccent,
-                  side: const BorderSide(color: Colors.amberAccent),
-                ),
-                child: const Text('DEMO ALERT'),
-              ),
-              ElevatedButton(
-                onPressed: _isExecutingBackendCommand ? null : _submitBackendCommand,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyanAccent,
-                  foregroundColor: Colors.black,
-                ),
-                child: Text(_isExecutingBackendCommand ? 'EXECUTING...' : 'EXECUTE'),
-              ),
-              OutlinedButton(
                 onPressed: _openJarvisMotion,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.limeAccent,
                   side: const BorderSide(color: Colors.limeAccent),
                 ),
-                child: const Text('MOTION'),
-              ),
-              OutlinedButton(
-                onPressed: _emergencyStop,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.redAccent,
-                  side: const BorderSide(color: Colors.redAccent),
-                ),
-                child: const Text('STOP'),
+                child: const Text('JIGGLE'),
               ),
             ],
           ),
@@ -897,25 +534,7 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
     );
   }
 
-  Widget _buildProductivityPanel() {
-    final latestNotification = _notificationEntries.isNotEmpty ? _notificationEntries.first : null;
-    final latestScheduler = _schedulerEntries.isNotEmpty ? _schedulerEntries.first : null;
-
-    String actionLabel(NotificationTriageEntry entry) {
-      switch (entry.action.toLowerCase()) {
-        case 'act':
-          return 'ACTED';
-        case 'alert':
-          return 'ALERT';
-        case 'log':
-          return 'LOGGED';
-        case 'ignore':
-          return 'IGNORED';
-        default:
-          return entry.action.toUpperCase();
-      }
-    }
-
+  Widget _buildLearningCoachPanel() {
     return Container(
       width: 300,
       padding: const EdgeInsets.all(12),
@@ -928,7 +547,7 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'PRODUCTIVITY LAYER',
+            'LEARNING COACH',
             style: TextStyle(
               color: Colors.amberAccent,
               fontSize: 12,
@@ -949,9 +568,9 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            _notificationStatus.running
-                ? 'Watcher live • queue ${_notificationStatus.queueLength}'
-                : 'Watcher offline',
+            _recommendedMicroBreak != null
+                ? 'Next guided reset: ${_recommendedMicroBreak!.title}'
+                : 'No guided reset queued',
             style: const TextStyle(
               color: Colors.cyanAccent,
               fontSize: 11,
@@ -959,32 +578,26 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            latestNotification != null
-                ? 'Latest notification: ${actionLabel(latestNotification)} • ${latestNotification.title}'
-                : 'No notification actions yet',
+            _uiComponents.isNotEmpty
+                ? 'Workspace items active: ${_uiComponents.length}'
+                : 'Workspace is clear',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(color: Colors.white, fontSize: 11),
           ),
           const SizedBox(height: 8),
           Text(
-            latestScheduler != null
-                ? 'Latest schedule: ${latestScheduler.taskName} ${latestScheduler.success ? 'OK' : 'FAIL'}'
-                : _schedulerStatus.running
-                    ? 'Scheduler running with ${_schedulerStatus.taskCount} tasks'
-                    : 'No scheduled workflow activity',
+            _recommendedMicroBreak != null
+                ? _recommendedMicroBreak!.summary
+                : 'Use Jiggle when you want guided practice, routine generation, or live feedback.',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(color: Colors.white70, fontSize: 11),
           ),
           const SizedBox(height: 8),
-          Text(
-            _recommendedMicroBreak != null
-                ? 'Break ready: ${_recommendedMicroBreak!.title}'
-                : 'No micro-break queued',
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.pinkAccent, fontSize: 11),
+          const Text(
+            'Jiggle is Jarvis\'s guided coaching mode for active learning sessions.',
+            style: TextStyle(color: Colors.pinkAccent, fontSize: 11),
           ),
         ],
       ),
@@ -1000,75 +613,10 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
     }
   }
 
-  Future<void> _handleSuiteToolCall(Map<String, dynamic> toolCall) async {
-    final function = toolCall['function'] as String?;
-    final functionId = toolCall['id'] as String?;
-    if (function == null || functionId == null) return;
-
-    switch (function) {
-      case 'run_phone_agent_task':
-        final mode = (toolCall['mode'] as String? ?? 'jarvis-agent').toLowerCase();
-        final prompt = toolCall['prompt'] as String? ?? '';
-        if (prompt.trim().isEmpty) {
-          await _geminiService.sendFunctionResponse(
-            functionId,
-            function,
-            'Task rejected because no prompt was provided.',
-          );
-          return;
-        }
-
-        final useControl = mode == 'phonepilot' || mode == 'jarvis-control' || mode == 'taskrunner';
-        final result = useControl
-            ? await _suiteBackendService.executeJarvisControlGoal(prompt)
-            : await _suiteBackendService.executeJarvisAgentCommand(prompt);
-
-        final component = UIComponent.card(
-          id: 'suite_exec_${DateTime.now().millisecondsSinceEpoch}',
-          title: '${result.source} ${result.success ? 'COMPLETE' : 'ERROR'}',
-          subtitle: useControl ? 'TaskRunner ADB engine' : 'InboxOps rooted operator',
-          content: result.message,
-        );
-        _addComponentWithAnimation(component);
-        await _refreshBackendHealth();
-        await _geminiService.sendFunctionResponse(
-          functionId,
-          function,
-          '${result.source}: ${result.message}',
-        );
-        return;
-
-      case 'get_suite_status':
-        final status = await _suiteBackendService.getSuiteStatusSummary();
-        await _refreshBackendHealth();
-        await _geminiService.sendFunctionResponse(functionId, function, status);
-        return;
-
-      case 'stop_phone_agent':
-        final released = await _suiteBackendService.releaseJarvisAgentLock();
-        await _refreshBackendHealth();
-        await _geminiService.sendFunctionResponse(
-          functionId,
-          function,
-          released
-              ? 'InboxOps emergency stop sent successfully.'
-              : 'Failed to reach InboxOps emergency stop endpoint.',
-        );
-        return;
-    }
-  }
-
   /// Handle tool calls from Gemini
   void _handleGeminiToolCall(Map<String, dynamic> toolCall) {
     final function = toolCall['function'] as String?;
     if (function == null) return;
-
-    if (function == 'run_phone_agent_task' ||
-        function == 'get_suite_status' ||
-        function == 'stop_phone_agent') {
-      unawaited(_handleSuiteToolCall(toolCall));
-      return;
-    }
 
     // Use provided ID if available, otherwise generate one
     final componentId = toolCall['id'] as String? ?? 'component_${_componentIdCounter++}';
@@ -1459,9 +1007,7 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _buildBackendStatusPanel(),
-                  const SizedBox(height: 12),
-                  _buildProductivityPanel(),
+                  _buildLearningCoachPanel(),
                 ],
               ),
             ),
@@ -1492,9 +1038,7 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
   @override
   void dispose() {
     _pulseTimer?.cancel();
-    _backendHealthTimer?.cancel();
     _focusModeTimer?.cancel();
-    _commandController.dispose();
     _cameraFrameService.dispose(_cameraController);
     _cameraController?.dispose();
     _audioRecorder.dispose();

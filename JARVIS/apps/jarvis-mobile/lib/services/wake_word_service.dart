@@ -14,17 +14,29 @@ enum WakeWordMode {
 
 class WakeWordService {
   static const _voskModelAsset = 'assets/models/vosk-model-small-en-us-0.15.zip';
-  static const _wakeGrammar = <String>['jarvis', 'hey jarvis'];
+  static const _wakeGrammar = <String>[
+    'jarvis',
+    'hey jarvis',
+    'jarvis productivity update',
+    'hey jarvis productivity update',
+  ];
   static const _wakePhrases = <String>['jarvis', 'hey jarvis'];
+  static const _productivityPhrases = <String>[
+    'jarvis productivity update',
+    'hey jarvis productivity update',
+  ];
 
   WakeWordService({
     required String accessKey,
     required Function() onWakeWordDetected,
+    Function(String command)? onVoiceCommandDetected,
   })  : _accessKey = accessKey,
-        _onWakeWordDetected = onWakeWordDetected;
+        _onWakeWordDetected = onWakeWordDetected,
+        _onVoiceCommandDetected = onVoiceCommandDetected;
 
   final String _accessKey;
   final Function() _onWakeWordDetected;
+  final Function(String command)? _onVoiceCommandDetected;
 
   final VoskFlutterPlugin _vosk = VoskFlutterPlugin.instance();
   final ModelLoader _modelLoader = ModelLoader();
@@ -155,6 +167,20 @@ class WakeWordService {
   void _handleVoskResult(String payload) {
     final transcript = _extractTranscript(payload);
     if (transcript.isEmpty) {
+      return;
+    }
+
+    final productivityMatch = _productivityPhrases.any(transcript.contains);
+    if (productivityMatch) {
+      final now = DateTime.now();
+      if (_lastWakeAt != null &&
+          now.difference(_lastWakeAt!) < const Duration(seconds: 3)) {
+        return;
+      }
+      _lastWakeAt = now;
+      print('Vosk voice command detected: $transcript');
+      unawaited(stop());
+      _onVoiceCommandDetected?.call('productivity_update');
       return;
     }
 

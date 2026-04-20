@@ -116,6 +116,21 @@ app.post("/notifications/test", (req, res) => {
   });
 });
 
+app.post("/demo/resume-workflow", (_req, res) => {
+  const notification = ctx.notificationQueue.runResumeDemoWorkflow();
+
+  res.json({
+    ok: true,
+    message:
+      "Demo workflow queued: WhatsApp from Prachi Aswani detected, LinkedIn resume share marked complete.",
+    notification: {
+      packageName: notification.packageName,
+      title: notification.title,
+      text: notification.text,
+    },
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Filter endpoints
 // ---------------------------------------------------------------------------

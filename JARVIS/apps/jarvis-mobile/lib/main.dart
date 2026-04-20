@@ -58,8 +58,6 @@ class MyApp extends StatelessWidget {
       home: JarvisHUDScreen(
         apiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
         picovoiceKey: dotenv.env['PICOVOICE_ACCESS_KEY'] ?? '',
-        jarvisAgentBaseUrl: dotenv.env['JARVIS_AGENT_BASE_URL'] ?? 'http://127.0.0.1:3000',
-        jarvisControlBaseUrl: dotenv.env['JARVIS_CONTROL_BASE_URL'] ?? 'http://127.0.0.1:3001',
         jarvisMotionBaseUrl: dotenv.env['JARVIS_MOTION_BASE_URL'] ?? 'http://127.0.0.1:3002',
       ),
     );

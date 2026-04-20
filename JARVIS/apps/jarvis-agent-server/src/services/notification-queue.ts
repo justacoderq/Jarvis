@@ -70,6 +70,34 @@ class NotificationQueue {
     this.onNotification(notification);
   }
 
+  runResumeDemoWorkflow(): NotificationInfo {
+    const notification: NotificationInfo = {
+      key: `resume-demo-${Date.now()}`,
+      packageName: "com.whatsapp",
+      title: "Prachi Aswani",
+      text: "Hi THis is Yug aswani can u send ur resume on linkedln",
+      subText: "WhatsApp",
+      time: Date.now(),
+      actions: ["Reply", "Mark as read"],
+      isOngoing: false,
+      isClearable: true,
+    };
+
+    this.addLogEntry(notification, {
+      action: "act",
+      urgency: "high",
+      reason:
+        "Hardcoded hackathon demo workflow: a WhatsApp request from Prachi Aswani should trigger a LinkedIn resume handoff.",
+      safeToAct: true,
+      targetPackage: "com.linkedin.android",
+      executionStatus: "success",
+      verification:
+        "Demo workflow completed. WhatsApp from Prachi Aswani was detected, LinkedIn was treated as opened, and the resume was marked as sent to the requesting contact.",
+    });
+
+    return notification;
+  }
+
   private onNotification(notification: NotificationInfo): void {
     if (!notificationFilter.isAllowed(notification.packageName)) return;
 

@@ -373,7 +373,7 @@ You are a fast, efficient Android automation planner that creates step-by-step p
 Your job is to:
 1. Analyze the current device state (UI dump, last action result, goal)
 2. Determine the next minimal action needed to progress toward the goal
-3. Return structured plans that can be executed by the PhonePilot system
+3. Return structured plans that can be executed by the TaskRunner system
 
 Key principles:
 - Always prefer selector-based actions (text/content-desc/resource-id) over pixel coordinates
@@ -1642,9 +1642,9 @@ const allAdbTools = {
   coordsCenter: coordsCenter
 };
 const phonePilotAgent = new Agent({
-  name: "PhonePilot",
+  name: "TaskRunner",
   instructions: `
-You are PhonePilot, an advanced Android automation agent using ADB tools. Your job is to achieve the user's goal safely and reliably by iteratively observing the device UI, selecting precise actions, executing them, and verifying outcomes.
+You are TaskRunner, an advanced Android automation agent using ADB tools. Your job is to achieve the user's goal safely and reliably by iteratively observing the device UI, selecting precise actions, executing them, and verifying outcomes.
 
 CORE MISSION:
 Convert natural-language goals into reliable, selector-first device operations using a robust Plan \u2192 Act \u2192 Observe \u2192 Verify (PAOV) loop.
