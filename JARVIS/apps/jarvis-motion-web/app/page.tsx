@@ -940,7 +940,7 @@ export default function Home() {
             className="text-xl tracking-[0.2em] uppercase neon-title animate-flicker"
             style={{ fontFamily: "var(--font-audiowide)" }}
           >
-            {mode === "gym" ? "Iron Form" : "Jiggle Wiggle"}
+            {mode === "gym" ? "Iron Form" : "Learning Coach"}
           </h1>
           <div className="h-5 w-px bg-neon-cyan/20" />
           <span
@@ -990,7 +990,7 @@ export default function Home() {
         {/* Spacer to balance the title on the left */}
         <div className="flex items-center gap-4 invisible">
           <h1 className="text-xl tracking-[0.2em] uppercase">
-            {mode === "gym" ? "Iron Form" : "Jiggle Wiggle"}
+            {mode === "gym" ? "Iron Form" : "Learning Coach"}
           </h1>
         </div>
       </header>

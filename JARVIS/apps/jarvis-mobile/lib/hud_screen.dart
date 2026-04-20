@@ -250,6 +250,12 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
       case 'productivity_update':
         unawaited(_showDailyBriefing());
         break;
+      case 'activate_learning_coach':
+        unawaited(_openJarvisMotion());
+        break;
+      case 'sarcastic_reply':
+        unawaited(_deliverSarcasticReply());
+        break;
       default:
         _onWakeWordDetected();
     }
@@ -392,6 +398,26 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
     );
   }
 
+  Future<void> _deliverSarcasticReply() async {
+    const line =
+        'Brilliant. You summoned an advanced AI just to ask for sarcasm. '
+        'At least your priorities are consistently questionable.';
+
+    _addComponentWithAnimation(
+      UIComponent.card(
+        id: 'sarcastic_reply_${DateTime.now().millisecondsSinceEpoch}',
+        title: 'JARVIS COMMENTARY',
+        subtitle: 'Dry wit module online',
+        content: line,
+      ),
+    );
+
+    await _voiceFeedbackService.speak(line);
+    if (!_isRecording && mounted) {
+      await _wakeWordService.start();
+    }
+  }
+
 
   Future<void> _openJarvisMotion() async {
     final wasRecording = _isRecording;
@@ -462,10 +488,10 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
           const SizedBox(height: 10),
           Text(
             _wakeWordService.mode == WakeWordMode.porcupine
-                ? 'Voice ready: say "Jarvis"'
+                ? 'Voice ready: say "Jarvis" or "Jarvis activate learning coach"'
                 : _wakeWordService.mode == WakeWordMode.vosk
                     ? (_wakeWordService.speechFallbackArmed
-                        ? 'Free Vosk wake word live: say "Jarvis" or "Jarvis productivity update"'
+                        ? 'Free Vosk wake word live: say "Jarvis", "Jarvis productivity update", "Jarvis activate learning coach", or "Hey Jarvis, how do I look"'
                         : 'Free Vosk wake word paused')
                     : 'Push-to-talk active: tap MIC',
             style: TextStyle(
@@ -525,7 +551,7 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
                   foregroundColor: Colors.limeAccent,
                   side: const BorderSide(color: Colors.limeAccent),
                 ),
-                child: const Text('JIGGLE'),
+                child: const Text('LEARNING COACH'),
               ),
             ],
           ),
@@ -589,14 +615,14 @@ class _JarvisHUDScreenState extends State<JarvisHUDScreen>
           Text(
             _recommendedMicroBreak != null
                 ? _recommendedMicroBreak!.summary
-                : 'Use Jiggle when you want guided practice, routine generation, or live feedback.',
+                : 'Use Learning Coach when you want guided practice, routine generation, or live feedback.',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(color: Colors.white70, fontSize: 11),
           ),
           const SizedBox(height: 8),
           const Text(
-            'Jiggle is Jarvis\'s guided coaching mode for active learning sessions.',
+            'Learning Coach is Jarvis\'s guided coaching mode for active learning sessions.',
             style: TextStyle(color: Colors.pinkAccent, fontSize: 11),
           ),
         ],

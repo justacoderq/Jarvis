@@ -19,11 +19,25 @@ class WakeWordService {
     'hey jarvis',
     'jarvis productivity update',
     'hey jarvis productivity update',
+    'jarvis activate learning coach',
+    'activate learning coach',
+    'open learning coach',
+    'hey jarvis how do i look',
+    'jarvis how do i look',
   ];
   static const _wakePhrases = <String>['jarvis', 'hey jarvis'];
   static const _productivityPhrases = <String>[
     'jarvis productivity update',
     'hey jarvis productivity update',
+  ];
+  static const _learningCoachPhrases = <String>[
+    'jarvis activate learning coach',
+    'activate learning coach',
+    'open learning coach',
+  ];
+  static const _sarcasticPhrases = <String>[
+    'hey jarvis how do i look',
+    'jarvis how do i look',
   ];
 
   WakeWordService({
@@ -171,7 +185,9 @@ class WakeWordService {
     }
 
     final productivityMatch = _productivityPhrases.any(transcript.contains);
-    if (productivityMatch) {
+    final learningCoachMatch = _learningCoachPhrases.any(transcript.contains);
+    final sarcasticMatch = _sarcasticPhrases.any(transcript.contains);
+    if (productivityMatch || learningCoachMatch || sarcasticMatch) {
       final now = DateTime.now();
       if (_lastWakeAt != null &&
           now.difference(_lastWakeAt!) < const Duration(seconds: 3)) {
@@ -180,7 +196,13 @@ class WakeWordService {
       _lastWakeAt = now;
       print('Vosk voice command detected: $transcript');
       unawaited(stop());
-      _onVoiceCommandDetected?.call('productivity_update');
+      _onVoiceCommandDetected?.call(
+        productivityMatch
+            ? 'productivity_update'
+            : learningCoachMatch
+                ? 'activate_learning_coach'
+                : 'sarcastic_reply',
+      );
       return;
     }
 

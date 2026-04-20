@@ -15,8 +15,8 @@ const chakraPetch = Chakra_Petch({
 });
 
 export const metadata: Metadata = {
-  title: "Jiggle Wiggle",
-  description: "Learn dance moves from YouTube videos with real-time AI coaching",
+  title: "Learning Coach",
+  description: "Learn from video with real-time AI coaching",
 };
 
 export default function RootLayout({

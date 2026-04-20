@@ -1,103 +1,107 @@
-# JARVIS
+# Jarvis Learning Coach
 
-This folder is the merged workspace for all four repos in your hackathon solution. Every original codebase is preserved inside `apps/`, and the root files define how they fit together as one product:
+Jarvis Learning Coach is a multimodal AI assistant inspired by the idea of having your own Jarvis: a voice-first guide that can see your surroundings, create structured tasks, organize information, and launch a guided learning experience through **Learning Coach**.
 
-- `apps/jarvis-mobile`: the JARVIS-style mobile shell with the Iron Man-like HUD, wake word, camera view, waveform UI, and assistant identity
-- `apps/jarvis-control-web`: the TaskRunner autonomous phone controller with ADB tools, screen understanding, planning, execution, and verification
-- `apps/jarvis-agent-server`: the InboxOps rooted Android / Termux agent server with notification triage, lock management, filtering, scheduling, and HTTP endpoints
-- `apps/jarvis-motion-web`: the MoveBreak movement coaching module with pose tracking, gesture control, AI coaching, reports, Zoom mode, and video generation
+It is useful because it helps users move from passive AI conversation to active guidance, planning, and learning support in one experience.
 
-## Product framing
+## Project Title
 
-The merged story is:
+**Jarvis Learning Coach**
 
-**JARVIS: a voice-first AI assistant with an AR-style HUD that can understand your phone, operate apps on your behalf, react to notifications, run scheduled tasks, and provide camera-based movement coaching.**
+## What It Does
 
-The JARVIS look is AR-styled rather than true headset AR. It uses a live camera feed with a futuristic HUD overlay, which is the right demo language for the Iron Man aesthetic.
+Jarvis is the main assistant layer:
 
-## Workspace layout
+- voice interaction
+- visual understanding through the live camera
+- task list creation and completion
+- notes, reminders, lists, calendar items, and summary cards
+- daily briefing and focus guidance
 
-```text
-JARVIS/
-  apps/
-    jarvis-mobile/
-    jarvis-control-web/
-    jarvis-agent-server/
-    jarvis-motion-web/
-  package.json
-  suite.config.json
-```
+Learning Coach is Jarvis's guided coaching mode:
 
-## Feature inventory
+- guided practice sessions
+- routine generation
+- live coaching and feedback
+- session support for active learning
 
-The suite now contains all features present in the source repos:
+Together, the product works like this:
 
-- JARVIS mobile HUD UI
-- wake-word voice activation
+1. You talk to Jarvis.
+2. Jarvis understands the goal and organizes the session.
+3. Jarvis launches **Learning Coach** for guided practice.
+4. You return to Jarvis with a clearer plan and next step.
+
+## Competition Fit
+
+This project fits an AI competition because it moves beyond a basic chatbot. Jarvis combines:
+
+- real-time voice interaction
 - live camera context
-- waveform and vitals panels
-- task display and assistant shell
-- Android phone control via ADB
-- screenshot/XML-based screen understanding
-- plan -> act -> observe -> verify loop
-- multi-step phone task execution
-- rooted Android agent mode
-- local HTTP API for commands
-- device lock and emergency release
-- notification watcher and AI triage
-- notification whitelist management
-- cron-like scheduler and run logs
-- motion coaching side mode
-- YouTube ingest and scoring
-- pose comparison and gesture controls
-- AI coach feedback
-- report card generation
-- Zoom integration
-- AI video generation flow
+- structured task and planning support
+- guided learning handoff through Learning Coach
 
-## Run commands
+It is not just AI that answers. It is AI that helps users understand, organize, and act.
 
-Run each module from the root:
+## Why This Project Is Useful
 
-```bash
-npm run dev:control
-npm run dev:control:mastra
-npm run dev:agent
-npm run dev:agent:server
-npm run dev:motion
+See [WHY_THIS_PROJECT_IS_USEFUL.md](./WHY_THIS_PROJECT_IS_USEFUL.md).
+
+## How I Used Codex
+
+See [HOW_I_USED_CODEX.md](./HOW_I_USED_CODEX.md).
+
+## Demo Video
+
+https://drive.google.com/file/d/1VQXHWCRuvmCgqsZoHoBA_vExKEFru0iv/view?usp=sharing
+
+## How To Run
+
+### 1. Start Learning Coach
+
+From the repo root:
+
+```powershell
+cd "C:\Users\Prachi\Downloads\Open AI Hackathon\JARVIS"
+npm.cmd run dev:suite:motion
 ```
 
-For the Flutter app:
+### 2. Forward the Learning Coach port to the tablet
 
-```bash
-cd apps/jarvis-mobile
-flutter pub get
-flutter run
+```powershell
+adb devices
+adb reverse tcp:3002 tcp:3002
+adb reverse --list
 ```
 
-## Keys to provide locally
+### 3. Run the Flutter app
 
-This suite is being normalized to `OpenAI + Gemini only`.
+```powershell
+cd "C:\Users\Prachi\Downloads\Open AI Hackathon\JARVIS\apps\jarvis-mobile"
+& "C:\Users\Prachi\flutter\bin\flutter.bat" run
+```
 
-- `apps/jarvis-mobile/.env`: `GEMINI_API_KEY`, optional `PICOVOICE_ACCESS_KEY`
-- `apps/jarvis-control-web/.env.local`: `OPENAI_API_KEY`, `GOOGLE_API_KEY`
-- `apps/jarvis-agent-server/.env`: `OPENAI_API_KEY`
-- `apps/jarvis-motion-web/.env.local`: `OPENAI_API_KEY`
+## Notes
 
-## Integration direction
+- This project requires an Android device for the full mobile experience.
+- The current product is intentionally scoped to **Jarvis + Learning Coach** only.
 
-The right integration path from here is:
+## Future Direction
 
-1. Keep `jarvis-mobile` as the main user-facing app.
-2. Point it at `jarvis-agent-server` for command, notification, and scheduling APIs.
-3. Use `jarvis-control-web` for ADB/screen-control logic behind the same command layer.
-4. Keep `jarvis-motion-web` as the movement and recovery mode.
+The next major direction for this project is to move beyond the phone and integrate Jarvis into wearable devices such as **Meta glasses**.
 
-## Source provenance
+That would make Jarvis much closer to a real ambient assistant:
 
-This folder was assembled from:
+- always available through voice
+- visually aware through a first-person camera view
+- capable of guiding users hands-free in real time
+- able to deliver Learning Coach experiences in a more immersive way
 
-- `jarvis-main/jarvis-main`
-- `phoneagent-main/phoneagent-main`
-- `android-agent-source`
-- `motion-coach-source`
+Instead of opening the app and manually switching into a session, Jarvis could live in the user’s field of view and help with:
+
+- contextual guidance
+- visual understanding of the environment
+- session planning on the go
+- real-time prompts during guided practice
+
+The phone version proves the interaction model today. The wearable direction is where Jarvis becomes a persistent AI companion rather than just an app.

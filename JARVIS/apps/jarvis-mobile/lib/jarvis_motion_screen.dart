@@ -78,7 +78,7 @@ class _JarvisMotionScreenState extends State<JarvisMotionScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.cyanAccent,
-        title: const Text('Jiggle Learning Coach'),
+        title: const Text('Learning Coach'),
         actions: [
           IconButton(
             onPressed: () {
@@ -106,7 +106,7 @@ class _JarvisMotionScreenState extends State<JarvisMotionScreen> {
                     const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
                     const SizedBox(height: 12),
                     const Text(
-                      'Could not load Jiggle Learning Coach.',
+                      'Could not load Learning Coach.',
                       style: TextStyle(color: Colors.white, fontSize: 18),
                     ),
                     const SizedBox(height: 8),
@@ -117,7 +117,7 @@ class _JarvisMotionScreenState extends State<JarvisMotionScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Make sure the Jiggle server is running and port 3002 is reversed to the device.',
+                      'Make sure the Learning Coach server is running and port 3002 is reversed to the device.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.white.withOpacity(0.7)),
                     ),

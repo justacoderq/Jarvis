@@ -35,7 +35,7 @@ export default function ZoomApp() {
   // Zoom SDK state
   const [meetingNumber, setMeetingNumber] = useState("");
   const [passcode, setPasscode] = useState("");
-  const [userName, setUserName] = useState("MoveBreak");
+  const [userName, setUserName] = useState("Learning Coach");
   const [zoomState, setZoomState] = useState<ZoomState>("idle");
   const [zoomError, setZoomError] = useState("");
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -223,7 +223,7 @@ export default function ZoomApp() {
           signature: sigData.signature,
           meetingNumber: meetingNumber.replace(/\s/g, ""),
           password: passcode,
-          userName: userName || "MoveBreak",
+          userName: userName || "Learning Coach",
         },
         "*"
       );
@@ -241,7 +241,7 @@ export default function ZoomApp() {
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-2">
             <span className="bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent">
-              Jiggle Wiggle
+              Learning Coach
             </span>
           </h1>
           <p className="text-white/40 text-sm">
@@ -290,7 +290,7 @@ export default function ZoomApp() {
           </button>
           <h1 className="text-xl font-bold">
             <span className="bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent">
-              Jiggle Wiggle
+              Learning Coach
             </span>
             <span className="text-white/30 text-sm ml-3 font-normal">
               Screen Capture
@@ -328,7 +328,7 @@ export default function ZoomApp() {
           </button>
           <h1 className="text-xl font-bold">
             <span className="bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent">
-              Jiggle Wiggle
+              Learning Coach
             </span>
             <span className="text-white/30 text-sm ml-3 font-normal">
               Zoom Meeting
